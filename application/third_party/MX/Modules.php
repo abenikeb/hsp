@@ -75,38 +75,77 @@ class Modules
 		
 		log_message('error', "Module controller failed to run: {$module}/{$method}");
 	}
-	
-	/** Load a module controller **/
+
 	public static function load($module) {
 
-		(is_array($module)) ? list($module, $params) = each($module) : $params = NULL;	
-		
-		/* get the requested controller class name */
-		$alias = strtolower(basename($module));
+    if (is_array($module)) {
+        foreach ($module as $mod => $params) {
+            $module = $mod;
+            break; // Only get the first key-value pair
+        }
+    } else {
+        $params = NULL;
+    }
 
-		/* create or return an existing controller from the registry */
-		if ( ! isset(self::$registry[$alias])) {
-			
-			/* find the controller */
-			list($class) = CI::$APP->router->locate(explode('/', $module));
+    /* get the requested controller class name */
+    $alias = strtolower(basename($module));
+
+    /* create or return an existing controller from the registry */
+    if (!isset(self::$registry[$alias])) {
+
+        /* find the controller */
+        list($class) = CI::$APP->router->locate(explode('/', $module));
+
+        /* controller cannot be located */
+        if (empty($class)) return;
+
+        /* set the module directory */
+        $path = APPPATH . 'controllers/' . CI::$APP->router->fetch_directory();
+
+        /* load the controller class */
+        $class = $class . CI::$APP->config->item('controller_suffix');
+        self::load_file($class, $path);
+
+        /* create and register the new controller */
+        $controller = ucfirst($class);
+        self::$registry[$alias] = new $controller($params);
+    }
+
+    return self::$registry[$alias];
+}
+
 	
-			/* controller cannot be located */
-			if (empty($class)) return;
-	
-			/* set the module directory */
-			$path = APPPATH.'controllers/'.CI::$APP->router->fetch_directory();
-			
-			/* load the controller class */
-			$class = $class.CI::$APP->config->item('controller_suffix');
-			self::load_file($class, $path);
-			
-			/* create and register the new controller */
-			$controller = ucfirst($class);	
-			self::$registry[$alias] = new $controller($params);
-		}
+	/** Load a module controller **/
+	// public static function load($module) {
+
+	// 	(is_array($module)) ? list($module, $params) = each($module) : $params = NULL;	
 		
-		return self::$registry[$alias];
-	}
+	// 	/* get the requested controller class name */
+	// 	$alias = strtolower(basename($module));
+
+	// 	/* create or return an existing controller from the registry */
+	// 	if ( ! isset(self::$registry[$alias])) {
+			
+	// 		/* find the controller */
+	// 		list($class) = CI::$APP->router->locate(explode('/', $module));
+	
+	// 		/* controller cannot be located */
+	// 		if (empty($class)) return;
+	
+	// 		/* set the module directory */
+	// 		$path = APPPATH.'controllers/'.CI::$APP->router->fetch_directory();
+			
+	// 		/* load the controller class */
+	// 		$class = $class.CI::$APP->config->item('controller_suffix');
+	// 		self::load_file($class, $path);
+			
+	// 		/* create and register the new controller */
+	// 		$controller = ucfirst($class);	
+	// 		self::$registry[$alias] = new $controller($params);
+	// 	}
+		
+	// 	return self::$registry[$alias];
+	// }
 	
 	/** Library base class autoload **/
 	public static function autoload($class) {
